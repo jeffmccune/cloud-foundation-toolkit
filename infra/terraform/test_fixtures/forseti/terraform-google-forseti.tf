@@ -93,8 +93,8 @@ module "forseti-host-network-01" {
 resource "google_project" "forseti" {
   provider = "google.phoogle"
 
-  name            = "ci-forseti"
-  project_id      = "ci-forseti"
+  name            = "${var.name_prefix}-ci-forseti"
+  project_id      = "${var.name_prefix}-ci-forseti"
   folder_id       = "${local.folder_id}"
   billing_account = "${var.phoogle_billing_account}"
 }
