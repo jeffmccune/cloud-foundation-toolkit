@@ -1,12 +1,16 @@
 provider "google" {
   # project = "${module.variables.project_id}"
   # region  = "${module.variables.region[terraform.workspace]}"
+  project = "jmccune-seed"
+  region  = "us-west1"
   version = "~> 2.7.0"
 }
 
 provider "google-beta" {
   # project = "${module.variables.project_id}"
   # region  = "${module.variables.region[terraform.workspace]}"
+  project = "jmccune-seed"
+  region  = "us-west1"
   version = "~> 2.7.0"
 }
 
