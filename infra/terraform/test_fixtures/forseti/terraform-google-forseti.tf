@@ -196,30 +196,6 @@ resource "google_project_iam_member" "forseti-enforcer" {
   member  = "serviceAccount:${google_service_account.forseti.email}"
 }
 
-// Create the Forseti real time enforcer roles. We're using a vendored copy of the
-// real_time_enforcer_roles module because this code isn't in a stable branch that we
-// can access. When the real_time_enforcer_roles module is released in v1.4.0 we should
-// switch to that:
-//
-// ```hcl
-// module "real_time_enforcer_roles" {
-//   source  = "terraform-google-modules/forseti/google"
-//   version = "~> 1.4"
-//   # ...
-// }
-//
-// ```
-module "real_time_enforcer_roles" {
-  source = "../../../modules/real_time_enforcer_roles"
-
-  org_id = "${var.phoogle_org_id}"
-
-  providers {
-    "google"      = "google.phoogle"
-    "google-beta" = "google-beta.phoogle"
-  }
-}
-
 resource "google_service_account_key" "forseti" {
   provider = "google.phoogle"
 
