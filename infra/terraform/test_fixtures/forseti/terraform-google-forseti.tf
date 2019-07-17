@@ -201,3 +201,16 @@ resource "google_service_account_key" "forseti" {
 
   service_account_id = "${google_service_account.forseti.id}"
 }
+
+
+// Outputs simulating GKE secrets
+output "ci_vars" {
+  value = {
+    phoogle_project_id       = "${google_project.forseti.id}"
+    phoogle_network_project  = "${module.forseti-host-project.project_id}"
+    phoogle_network          = "${module.forseti-host-network-01.network_name}"
+    phoogle_subnetwork       = "${module.forseti-host-network-01.subnets_names[0]}"
+    phoogle_enforcer_project = "${module.forseti-enforcer-project.project_id}"
+    phoogle_sa               = "${base64decode(google_service_account_key.forseti.private_key)}"
+  }
+}

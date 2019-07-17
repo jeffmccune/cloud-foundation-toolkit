@@ -15,7 +15,7 @@ variable "core_group" {
 
 // From module variables
 variable "name_prefix" {
-  default = "cicd-jmccune"
+  default = "jmccune2"
   description = "Common prefix for naming resources such as networks and k8s clusters."
 }
 
