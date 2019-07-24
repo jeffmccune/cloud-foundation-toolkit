@@ -14,17 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Create a temporary directory that's auto-cleaned, even if the process aborts.
-DELETE_AT_EXIT="$(mktemp -d)"
+# Trap handler to delete the temporary directory created by
+# setup_trap_handler() and used by maketemp()
 finish() {
-  [[ -d "${DELETE_AT_EXIT}" ]] && rm -rf "${DELETE_AT_EXIT}"
+  if [[ -n "${DELETE_AT_EXIT:-}" ]]; then
+    rm -rf "${DELETE_AT_EXIT}"
+  fi
 }
-trap finish EXIT
-# Create a temporary file in the auto-cleaned up directory while avoiding
-# overwriting TMPDIR for other processes.
+
+# Create a temporary directory and store the path in DELETE_AT_EXIT.  Register
+# a trap handler to automatically remove this temporary directory.  Intended
+# for use with maketemp() to automatically clean up temporary files, especially
+# those used to store credentials.
+setup_trap_handler() {
+  readonly DELETE_AT_EXIT="$(mktemp -d)"
+  trap finish EXIT
+}
+
+# If DELETE_AT_EXIT is set (by setup_trap_handler), create a temporary file in
+# the auto-cleaned up directory while avoiding overwriting TMPDIR for other
+# processes.  Otherwise, create a temporary file or directory normally as per
+# mktemp.
+#
 # shellcheck disable=SC2120 # (Arguments may be passed, e.g. maketemp -d)
 maketemp() {
-  TMPDIR="${DELETE_AT_EXIT}" mktemp "$@"
+  if [[ -n "${DELETE_AT_EXIT:-}" ]]; then
+    TMPDIR="${DELETE_AT_EXIT}" mktemp "$@"
+  else
+    mktemp "$@"
+  fi
 }
 
 # find_files is a helper to exclude .git directories and match only regular
@@ -171,4 +189,50 @@ function check_headers() {
   # Use the exclusion behavior of find_files
   find_files . -type f -print0 \
     | compat_xargs -0 python test/verify_boilerplate.py
+}
+
+
+# Given SERVICE_ACCOUNT_JSON with the JSON string of a service account key,
+# initialize the SA credentials for use with:
+# 1: terraform
+# 2: gcloud
+# 3: gsutil
+# 4: Kitchen and inspec
+#
+# Add service acocunt support for additional tools as needed, preferring the
+# use of environment varialbes so that the variable may be removed and an
+# instance service account with Google Managed Keys used instead.
+init_credentials() {
+  if [[ -z "${SERVICE_ACCOUNT_JSON:-}" ]]; then
+    echo "Error: SERVICE_ACCOUNT_JSON must contain the JSON string (not the" >&2
+    echo "file path) of the service account credentials.  For example:" >&2
+    echo 'export SERVICE_ACCOUNT_JSON=$(< ~/.credentials/my-sa-key.json)' >&2
+    return 1
+  fi
+
+  local tmpfile
+  tmpfile="$(maketemp)"
+  echo "${SERVICE_ACCOUNT_JSON}" > "${tmpfile}"
+
+  # Terraform and most other tools respect GOOGLE_CREDENTIALS
+  # https://www.terraform.io/docs/providers/google/provider_reference.html#credentials-1
+  export GOOGLE_CREDENTIALS="${SERVICE_ACCOUNT_JSON}"
+
+  # gcloud variables
+  export CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE="${tmpfile}"
+
+  # InSpec respects GOOGLE_APPLICATION_CREDENTIALS
+  # https://github.com/inspec/inspec-gcp#create-credentials-file-via
+  export GOOGLE_APPLICATION_CREDENTIALS="${tmpfile}"
+
+  # Configure gsutil standalone
+  # https://cloud.google.com/storage/docs/gsutil/commands/config
+  gcloud config set pass_credentials_to_gsutil false
+  echo "[Credentials]" > ~/.boto
+  echo "gs_service_key_file = ${tmpfile}" >> ~/.boto
+}
+
+setup_environment() {
+  echo 'Warning: setup_environment is deprecated.  Use init_credentials instead.' >&2
+  init_credentials
 }

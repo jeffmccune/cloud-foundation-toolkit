@@ -13,17 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Setup temp directory for credentials written to disk
-DELETE_AT_EXIT="$(mktemp -d)"
-export TMPDIR="${DELETE_AT_EXIT}"
+source /usr/local/bin/task_helper_functions.sh
+
+setup_trap_handler
+init_credentials
 
 set -eu
 
-# Always cleanup credentials upon exiting
-finish() {
-  [[ -d "${DELETE_AT_EXIT}" ]] && rm -rf "${DELETE_AT_EXIT}"
-}
-trap finish EXIT
-
-source /usr/local/bin/setup_environment.sh
 "$@"

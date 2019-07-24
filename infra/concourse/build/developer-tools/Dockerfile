@@ -52,19 +52,20 @@ RUN /build/install_terraform_docs.sh ${TERRAFORM_DOCS_VERSION}
 ADD ./build/install_kubectl.sh /build/
 RUN /build/install_kubectl.sh
 
-ADD ./build/scripts/setup_environment.sh /usr/local/bin/
-ADD ./build/scripts/execute_with_credentials.sh /usr/local/bin/
-
-# Provide task helper functions with wrapper scripts for Terraform module lint
-# checks
-ADD ./build/scripts/task_helper_functions.sh /usr/local/bin/
-ADD ./build/scripts/task_wrapper_scripts/* /usr/local/bin/
-
 WORKDIR /opt/kitchen
 ADD ./build/data/Gemfile .
 ADD ./build/data/Gemfile.lock .
 ADD ./build/data/requirements.txt .
 RUN bundle install && pip3 install -r requirements.txt
+
+# NOTE: Most developers are expected to source this file when entering the
+# container, then run init_credentials
+ADD ./build/scripts/task_helper_functions.sh /usr/local/bin/
+# Provide task helper functions with wrapper scripts for Terraform module lint
+# checks
+ADD ./build/scripts/task_wrapper_scripts/* /usr/local/bin/
+# Execute a command with SA credentials configured.
+ADD ./build/scripts/execute_with_credentials.sh /usr/local/bin/
 
 WORKDIR $WORKSPACE
 RUN terraform --version && \
